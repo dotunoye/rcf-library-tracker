@@ -54,7 +54,7 @@ body {
 .controls-header {
     padding: 16px;
     position: sticky;
-    top: 53px; /* Sits directly beneath navbar */
+    top: 70px; /* Sits directly beneath navbar */
     z-index: 10;
 }
 
