@@ -52,12 +52,10 @@ body {
 
 /* Fixed Controls Header Section */
 .controls-header {
-    background-color: #ffffff;
     padding: 16px;
     position: sticky;
     top: 53px; /* Sits directly beneath navbar */
     z-index: 10;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .controls{
