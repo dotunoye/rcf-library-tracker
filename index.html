@@ -5,38 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Church Library Tracker</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="image.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-    <nav class="navbar">
-        <div class="nav-content">
-            <span class="nav-logo">📚</span>
-            <h1 class="nav-title">Church Library</h1>
+    <div id="loginPage" class="login-container">
+        <div class="login-card">
+            <span class="login-icon">🔒</span>
+            <h2>Library Access</h2>
+            <p>Enter password to manage database</p>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <input type="password" id="adminPassword" placeholder="Enter Password" required>
+                <button type="submit" class="login-btn">Unlock System</button>
+            </form>
+            <p id="loginError" class="error-msg"></p>
         </div>
-    </nav>
-
-    <header class="controls-header">
-        <div class="search-container">
-            <input type="text" id="searchBar" placeholder="Search by book title or name...">
-        </div>
-        <div class="tabs-container">
-            <button class="tab active" onclick="switchTab('all', this)">All</button>
-            <button class="tab" onclick="switchTab('active', this)">Active</button>
-            <button class="tab" onclick="switchTab('overdue', this)">Overdue</button>
-            <button class="tab" onclick="switchTab('returned', this)">Returned</button>
-        </div>
-    </header>
-
-    <div class="utility-panel">
-        <button class="export-btn" onclick="exportToCSV()">Export Spreadsheet (.csv)</button>
     </div>
 
-    <main class="card-list" id="cardList">
-        <p style="text-align:center; color: var(--text-muted); margin-top: 40px;">Loading library files from cloud...</p>
-    </main>
+    <div id="appDashboard" style="display: none;">
+        <nav class="navbar">
+            <div class="nav-content">
+                <span class="nav-logo"><img src="image.png" alt=""></span>
+                <h1 class="nav-title">Church Library</h1>
+                <button class="logout-btn" onclick="handleLogout()">Logout</button>
+            </div>
+        </nav>
 
-    <button class="fab" onclick="toggleModal(true)">+</button>
+        <header class="controls-header">
+            <div class="controls">
+            <div class="search-container">
+                <input type="text" id="searchBar" placeholder="Search by book title or name...">
+            </div>
+            <div class="tabs-container">
+                <button class="tab active" onclick="switchTab('all', this)">All</button>
+                <button class="tab" onclick="switchTab('active', this)">Active</button>
+                <button class="tab" onclick="switchTab('overdue', this)">Overdue</button>
+                <button class="tab" onclick="switchTab('returned', this)">Returned</button>
+            </div>
+            </div>
+        </header>
+
+        <div class="utility-panel">
+            <button class="export-btn" onclick="exportToCSV()">Export Spreadsheet (.csv)</button>
+        </div>
+
+        <main class="card-list" id="cardList">
+            </main>
+
+        <button class="fab" onclick="toggleModal(true)">+</button>
+    </div>
 
     <div class="modal-overlay" id="formModal">
         <div class="modal-content">
@@ -61,11 +79,30 @@
                     <label>Phone Number</label>
                     <input type="tel" id="borrowerPhone" required placeholder="e.g., 08012345678">
                 </div>
+                <div class="form-group">
+                    <label>Date Borrowed</label>
+                    <input type="date" id="customBorrowDate">
+                </div>
                 <button type="submit" class="submit-btn">Issue Loan (₦300)</button>
             </form>
         </div>
     </div>
-
+    <footer class="app-footer">
+            <div class="container">
+                <div class="footer-inner">
+                    <div class="footer-brand">
+                        <div class="logo-mark small" aria-hidden="true">
+                            <img class="logo-img" src="image.png" alt="RCF Logo">
+                        </div>
+                        <div class="brand-text">
+                            <strong>RCF FUNAAB Library Tracker</strong>
+                            <span>Redeemed Christian Fellowship, FUNAAB</span>
+                        </div>
+                    </div>
+                    <p class="footer-copy">© <span id="year">2026</span> Built with 🖤 by <a href="https://dotundev.vercel.app" style="text-decoration: none; color: #4ade80;" target="_blank">Dotun</a>.</p>
+                </div>
+            </div>
+        </footer>
     <script src="script.js"></script>
 </body>
 </html>

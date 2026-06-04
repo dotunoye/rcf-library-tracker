@@ -19,7 +19,6 @@
 body {
     background-color: var(--bg-color);
     color: var(--text-main);
-    padding-bottom: 100px; /* Space for FAB */
 }
 
 /* Navigation Bar */
@@ -40,8 +39,9 @@ body {
     margin: 0 auto;
 }
 
-.nav-logo {
-    font-size: 24px;
+.nav-logo img {
+    height: 44px;
+    width: 44px;
 }
 
 .nav-title {
@@ -58,6 +58,12 @@ body {
     top: 53px; /* Sits directly beneath navbar */
     z-index: 10;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.controls{
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .search-container {
@@ -349,4 +355,130 @@ body {
 
 .card .info-line {
     max-width: 65%;
+}
+
+.login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background-color: var(--bg-color);
+}
+
+.login-card {
+    background: var(--card-bg);
+    width: 100%;
+    max-width: 360px;
+    padding: 32px 24px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.login-icon {
+    font-size: 40px;
+    display: inline-block;
+    margin-bottom: 12px;
+}
+
+.login-card h2 {
+    font-size: 22px;
+    margin-bottom: 6px;
+    color: var(--text-main);
+}
+
+.login-card p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+}
+
+.login-card input[type="password"] {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 16px;
+    margin-bottom: 16px;
+    outline: none;
+    text-align: center;
+}
+
+.login-btn {
+    width: 100%;
+    background-color: var(--primary);
+    color: white;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.error-msg {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 12px;
+    font-weight: 600;
+}
+
+.logout-btn {
+    background: none;
+    border: 1px solid #d1d5db;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+/* Official RCF Library Footer Custom Styling */
+.app-footer {
+    border-top: 1px solid #e5e7eb;
+    padding: 24px 16px 40px 16px; /* Extra bottom padding leaves room for the FAB */
+    margin-top: 32px;
+}
+
+.footer-inner {
+    max-width: 500px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    text-align: center;
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+}
+
+.logo-mark.small .logo-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.brand-text {display: flex;}
+.brand-text {flex-direction: column;}
+
+.brand-text strong {
+    display: block;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.brand-text span {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.footer-copy {
+    font-size: 12px;
+    color: var(--text-muted);
 }

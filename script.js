@@ -1,22 +1,55 @@
-// Replace these strings with your actual Supabase project credentials
+// 1. Changed variable name to 'sb' to prevent global namespace collisions
 const SUPABASE_URL = "https://bkabrmuknzvqtghcnlmt.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrYWJybXVrbnp2cXRnaGNubG10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1MDQ1OTgsImV4cCI6MjA5NjA4MDU5OH0.5V2pwbZpMYtkEDDkW63d9rR0-AG1lQsUSQFLSztyxVM";
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const churchDb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const PORTAL_PASSWORD = "church"; 
 
 let transactions = [];
 let currentFilter = 'all';
 
-// Initialize App lifecycle
+// 2. Authentication Gatekeeping Logic
+window.onload = function() {
+    if (sessionStorage.getItem('library_authenticated') === 'true') {
+        showDashboard();
+    }
+};
+
+function handleLogin(e) {
+    e.preventDefault();
+    const enteredPassword = document.getElementById('adminPassword').value;
+    const errorEl = document.getElementById('loginError');
+
+    if (enteredPassword === PORTAL_PASSWORD) {
+        sessionStorage.setItem('library_authenticated', 'true');
+        errorEl.textContent = "";
+        showDashboard();
+    } else {
+        errorEl.textContent = "Invalid administrative password. Try again.";
+        document.getElementById('adminPassword').value = "";
+    }
+}
+
+async function showDashboard() {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('appDashboard').style.display = 'block';
+    await initApp(); 
+}
+
+function handleLogout() {
+    sessionStorage.removeItem('library_authenticated');
+    window.location.reload();
+}
+
+// 3. Application Core Pipeline
 async function initApp() {
     await fetchFromCloud();
     renderCards();
 }
 
-// Read Data from Supabase Cloud Database Pipeline
 async function fetchFromCloud() {
     try {
-        let { data, error } = await supabase
+        let { data, error } = await churchDb
             .from('transactions')
             .select('*')
             .order('id', { ascending: false });
@@ -31,7 +64,6 @@ async function fetchFromCloud() {
     }
 }
 
-// Scans timestamps to process local overdue conversions
 function evaluateOverdueStatus() {
     const todayStr = new Date().toISOString().split('T')[0];
     transactions.forEach(t => {
@@ -43,22 +75,37 @@ function evaluateOverdueStatus() {
 
 function toggleModal(show) {
     const modal = document.getElementById('formModal');
-    if(show) modal.classList.add('open');
-    else modal.classList.remove('open');
+    if(show) {
+        modal.classList.add('open');
+        // Automatically pre-fill the date selector with today's date for standard check-ins
+        document.getElementById('customBorrowDate').value = new Date().toISOString().split('T')[0];
+    } else {
+        modal.classList.remove('open');
+    }
 }
 
-// Write New Loan Log to Cloud
-async function handleFormSubmit(e) {
+// 4. Database Write Operationsasync 
+    async function handleFormSubmit(e) {
     e.preventDefault();
     
-    const today = new Date();
+    // 1. Determine the Borrow Date (Use manual input if selected, otherwise default to today)
+    const manualDateInput = document.getElementById('customBorrowDate').value;
+    let today = new Date();
+    
+    if (manualDateInput) {
+        // Parse the backdated entry correctly
+        today = new Date(manualDateInput);
+    }
+    
     const borrowDateStr = today.toISOString().split('T')[0];
     
-    const dueOffset = new Date();
+    // 2. Extrapolate the deadline exactly 30 days forward from the selected borrow date
+    const dueOffset = new Date(today);
     dueOffset.setDate(today.getDate() + 30);
     const dueDateStr = dueOffset.toISOString().split('T')[0];
 
     const newLoan = {
+        id: Date.now(), // Temporary local ID
         book_title: document.getElementById('bookTitle').value,
         author: document.getElementById('author').value,
         borrower_name: document.getElementById('borrowerName').value,
@@ -70,41 +117,70 @@ async function handleFormSubmit(e) {
         status: "Active"
     };
 
-    try {
-        const { error } = await supabase.from('transactions').insert([newLoan]);
-        if (error) throw error;
+    // Update screen instantly
+    transactions.unshift(newLoan);
+    renderCards();
+    
+    document.getElementById('loanForm').reset();
+    toggleModal(false);
 
-        document.getElementById('loanForm').reset();
-        toggleModal(false);
-        await initApp(); // Refresh records
+    try {
+        const { error } = await churchDb.from('transactions').insert([{
+            book_title: newLoan.book_title,
+            author: newLoan.author,
+            borrower_name: newLoan.borrower_name,
+            borrower_phone: newLoan.borrower_phone,
+            borrow_date: newLoan.borrow_date,
+            due_date: newLoan.due_date,
+            renewals_count: newLoan.renewals_count,
+            amount_paid: newLoan.amount_paid,
+            status: newLoan.status
+        }]);
+        if (error) throw error;
+        await fetchFromCloud(); 
     } catch (err) {
-        alert("Error saving record: " + err.message);
+        alert("Cloud sync failed. Error: " + err.message);
     }
 }
 
-// Process Returns on Cloud
 async function markAsReturned(id) {
+    // snappy move: update UI immediately
+    transactions = transactions.map(t => {
+        if (t.id === id) t.status = 'Returned';
+        return t;
+    });
+    renderCards();
+
     try {
-        const { error } = await supabase
+        const { error } = await churchDb
             .from('transactions')
             .update({ status: 'Returned' })
             .eq('id', id);
-
         if (error) throw error;
-        await initApp();
     } catch (err) {
-        alert("Return error: " + err.message);
+        alert("Return sync error: " + err.message);
     }
 }
 
-// Process Extensions on Cloud
 async function renewLoan(id, currentDueDate, currentCount, currentPayment) {
     const nextDue = new Date(currentDueDate);
     nextDue.setDate(nextDue.getDate() + 30);
     const nextDueStr = nextDue.toISOString().split('T')[0];
 
+    // snappy move: update UI immediately
+    transactions = transactions.map(t => {
+        if (t.id === id) {
+            t.due_date = nextDueStr;
+            t.renewals_count = currentCount + 1;
+            t.amount_paid = currentPayment + 300;
+            t.status = 'Active';
+        }
+        return t;
+    });
+    renderCards();
+
     try {
-        const { error } = await supabase
+        const { error } = await churchDb
             .from('transactions')
             .update({ 
                 due_date: nextDueStr,
@@ -113,15 +189,13 @@ async function renewLoan(id, currentDueDate, currentCount, currentPayment) {
                 status: 'Active'
             })
             .eq('id', id);
-
         if (error) throw error;
-        await initApp();
     } catch (err) {
-        alert("Renewal error: " + err.message);
+        alert("Renewal sync error: " + err.message);
     }
 }
 
-// Card Renderer Interface Processor
+// 5. Interface UI Rendering Engine
 function renderCards() {
     const container = document.getElementById('cardList');
     const searchQuery = document.getElementById('searchBar').value.toLowerCase();
@@ -150,23 +224,19 @@ function renderCards() {
         if(t.status === 'Overdue') badgeClass = 'badge-overdue';
         if(t.status === 'Returned') badgeClass = 'badge-returned';
 
-        // Calculate proximity alert window threshold logic (6 Days countdown)
         const dueDateObj = new Date(t.due_date);
         const timeDiff = dueDateObj.getTime() - today.getTime();
         const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
         
-        // Show notification buttons if the book is overdue OR due in 6 days or less (and not returned yet)
         const showAlertCommButtons = (t.status === 'Overdue' || (daysRemaining <= 6 && daysRemaining >= 0)) && t.status !== 'Returned';
 
-        // Automatic clean template generation parsing for message texts
         const formattedMessage = encodeURIComponent(
             `Hi ${t.borrower_name}, this is a reminder from the Church Library. The book "${t.book_title}" you borrowed is due on ${t.due_date}. Please plan to return or renew it. Thank you!`
         );
 
-        // Sanitize Phone parameters 
         let rawPhone = t.borrower_phone.trim();
         if (rawPhone.startsWith('0')) {
-            rawPhone = '234' + rawPhone.slice(1); // Standardize Nigerian phone formats for WhatsApp API link strings
+            rawPhone = '234' + rawPhone.slice(1); 
         }
 
         card.innerHTML = `
@@ -208,10 +278,11 @@ function switchTab(status, element) {
 
 document.getElementById('searchBar').addEventListener('input', renderCards);
 
-// Blob-based CSV Downloader for cross-device support (Mobile + Laptop Fix)
+// 6. Data Exporter Engine
 function exportToCSV() {
-    if(transactions.length === 0) return alert('No data available to export.');
+    if (transactions.length === 0) return alert('No library data files available to export.');
 
+    // 1. Establish data row parameters
     let csvContent = "ID,Book Title,Author,Borrower Name,Phone,Borrow Date,Due Date,Renewals Count,Amount Paid (NGN),Status\r\n";
 
     transactions.forEach(t => {
@@ -219,22 +290,47 @@ function exportToCSV() {
         const authorEscaped = `"${t.author.replace(/"/g, '""')}"`;
         const nameEscaped = `"${t.borrower_name.replace(/"/g, '""')}"`;
 
-        const row = [t.id, titleEscaped, authorEscaped, nameEscaped, t.borrower_phone, t.borrow_date, t.due_date, t.renewals_count, t.amount_paid, t.status];
+        const row = [
+            t.id, 
+            titleEscaped, 
+            authorEscaped, 
+            nameEscaped, 
+            `="${t.borrower_phone}"`, // Forces spreadsheet apps to retain leading zeros on numbers
+            t.borrow_date, 
+            t.due_date, 
+            t.renewals_count, 
+            t.amount_paid, 
+            t.status
+        ];
         csvContent += row.join(",") + "\r\n";
     });
 
-    // Create a real blob container type
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Church_Library_Report_${new Date().toISOString().split('T')[0]}.csv`);
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url); // Clean memory allocation trace references
-}
+  try {
+        // 1. Add the Byte Order Mark (BOM) to fix character encoding
+        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+        
+        // 2. FORCE SYSTEM MIME-TYPE TO MS-EXCEL: This tells your phone's OS to launch WPS Office natively
+        const blob = new Blob([bom, csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement("a");
+        link.href = url;
+        
+        // 3. Keep the extension as .csv or change to .xls if WPS is still stubborn. Let's try .csv first:
+        link.download = `RCF_Library_Report_${new Date().toISOString().split('T')[0]}.csv`;
+        
+        // Append to DOM layout so mobile systems recognize the click event pipeline
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up allocation memory paths
+        setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }, 100);
 
-window.onload = initApp;
+    } catch (err) {
+        alert("Spreadsheet compilation failed.");
+        console.error(err);
+    }
+}
